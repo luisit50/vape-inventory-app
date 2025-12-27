@@ -19,6 +19,30 @@ const userSchema = new mongoose.Schema({
     required: true,
     minlength: 6,
   },
+  // Subscription fields
+  subscriptionTier: {
+    type: String,
+    enum: ['free', 'premium', 'pro'],
+    default: 'free',
+  },
+  subscriptionStatus: {
+    type: String,
+    enum: ['active', 'canceled', 'expired', 'trialing'],
+    default: 'active',
+  },
+  subscriptionId: {
+    type: String, // RevenueCat or Stripe subscription ID
+  },
+  subscriptionExpiresAt: {
+    type: Date,
+  },
+  trialEndsAt: {
+    type: Date,
+  },
+  bottleLimit: {
+    type: Number,
+    default: 50, // Free tier limit
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -37,6 +61,33 @@ userSchema.pre('save', async function(next) {
 // Method to compare passwords
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
+};
+
+// Check if user has active subscription
+userSchema.methods.hasActiveSubscription = function() {
+  if (this.subscriptionTier === 'free') return false;
+  if (this.subscriptionStatus !== 'active' && this.subscriptionStatus !== 'trialing') return false;
+  if (this.subscriptionExpiresAt && this.subscriptionExpiresAt < new Date()) return false;
+  return true;
+};
+
+// Check if user can use AI OCR
+userSchema.methods.canUseAIocr = function() {
+  return this.subscriptionTier === 'premium' || this.subscriptionTier === 'pro';
+};
+
+// Check if user can access web dashboard
+userSchema.methods.canAccessWebDashboard = function() {
+  return this.subscriptionTier === 'premium' || this.subscriptionTier === 'pro';
+};
+
+// Check if user reached bottle limit
+userSchema.methods.hasReachedBottleLimit = async function() {
+  if (this.subscriptionTier !== 'free') return false; // No limit for paid users
+  
+  const Bottle = mongoose.model('Bottle');
+  const count = await Bottle.countDocuments({ user: this._id });
+  return count >= this.bottleLimit;
 };
 
 module.exports = mongoose.model('User', userSchema);

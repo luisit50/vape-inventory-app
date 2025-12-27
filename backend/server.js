@@ -20,6 +20,7 @@ mongoose.connect(process.env.MONGODB_URI)
 
 // API Routes
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/subscription', require('./routes/subscription'));
 app.use('/api/inventory', require('./routes/inventory'));
 app.use('/api/ocr', require('./routes/ocr'));
 app.use('/api/ai-ocr', require('./routes/aiOcr'));

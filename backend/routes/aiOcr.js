@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const Tesseract = require('tesseract.js');
+const auth = require('../middleware/auth');
+const { requireSubscription } = require('../middleware/subscription');
 
 // Configure multer
 const storage = multer.memoryStorage();
@@ -10,8 +12,8 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-// AI-enhanced OCR with validation
-router.post('/extract-smart', upload.single('image'), async (req, res) => {
+// AI-enhanced OCR with validation (Premium/Pro only)
+router.post('/extract-smart', auth, requireSubscription('premium'), upload.single('image'), async (req, res) => {
   try {
     // Step 1: Use Tesseract for initial extraction
     const ocrResult = await Tesseract.recognize(req.file.buffer, 'eng');

@@ -3,6 +3,7 @@ const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const Bottle = require('../models/Bottle');
 const auth = require('../middleware/auth');
+const { checkBottleLimit } = require('../middleware/subscription');
 
 // @route   GET /api/inventory
 // @desc    Get all bottles for logged in user
@@ -45,6 +46,7 @@ router.get('/:id', auth, async (req, res) => {
 // @access  Private
 router.post('/', [
   auth,
+  checkBottleLimit, // Check if free user reached limit
   body('name').trim().notEmpty().withMessage('Name is required'),
   body('expirationDate').notEmpty().withMessage('Expiration date is required'),
 ], async (req, res) => {
