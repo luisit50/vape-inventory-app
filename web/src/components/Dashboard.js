@@ -27,11 +27,11 @@ const Dashboard = () => {
   const [tabValue, setTabValue] = useState(0); // 0: All, 1: Critical, 2: Warning, 3: Good
 
   useEffect(() => {
-    loadBottles();
+    loadBottles(true); // Initial load with loading spinner
     
-    // Auto-refresh every 10 seconds
+    // Auto-refresh every 10 seconds (silent, no loading spinner)
     const interval = setInterval(() => {
-      loadBottles();
+      loadBottles(false); // Background refresh without spinner
     }, 10000); // 10 seconds
     
     // Cleanup interval on unmount
@@ -42,9 +42,11 @@ const Dashboard = () => {
     filterBottles();
   }, [bottles, searchQuery, tabValue]);
 
-  const loadBottles = async () => {
+  const loadBottles = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       setError('');
       const response = await inventoryAPI.getAllBottles();
       setBottles(response.data);
