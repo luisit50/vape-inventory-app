@@ -13,8 +13,12 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files from web build
-app.use(express.static(path.join(__dirname, 'web/build')));
+// Serve static files from web build (only if build exists)
+const webBuildPath = path.join(__dirname, 'web/build');
+const fs = require('fs');
+if (fs.existsSync(webBuildPath)) {
+  app.use(express.static(webBuildPath));
+}
 
 // Database connection
 mongoose.connect(process.env.MONGODB_URI)
@@ -32,10 +36,27 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
-// Serve React app for all other routes
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'web/build', 'index.html'));
-});
+// Serve React app for all other routes (only if build exists)
+const webIndexPath = path.join(__dirname, 'web/build', 'index.html');
+if (fs.existsSync(webIndexPath)) {
+  app.get('*', (req, res) => {
+    res.sendFile(webIndexPath);
+  });
+} else {
+  app.get('/', (req, res) => {
+    res.json({ 
+      message: 'Vape Inventory API', 
+      status: 'running',
+      endpoints: {
+        health: '/api/health',
+        auth: '/api/auth',
+        inventory: '/api/inventory',
+        ocr: '/api/ocr',
+        aiOcr: '/api/ai-ocr'
+      }
+    });
+  });
+}
 
 // Error handling middleware
 app.use((err, req, res, next) => {
