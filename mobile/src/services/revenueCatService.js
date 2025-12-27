@@ -1,7 +1,7 @@
 import Purchases from 'react-native-purchases';
 import { Platform } from 'react-native';
 
-const REVENUECAT_API_KEY = 'test_ilZcrAttuaKaaRgJhUHdPbpaCh';
+const REVENUECAT_API_KEY = 'sk_nnhxSslUGOAwmKUeleqXAHAxCvjTO';
 
 class RevenueCatService {
   async initialize(userId) {

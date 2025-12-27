@@ -45,6 +45,11 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
+// Serve privacy policy
+app.get('/privacy-policy', (req, res) => {
+  res.sendFile(path.join(__dirname, 'web', 'privacy-policy.html'));
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
