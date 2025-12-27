@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { store } from '../store/store';
+import { logout } from '../store/slices/authSlice';
 
 const API_URL = 'https://vape-inventory-app.onrender.com/api'; // Render backend
 
@@ -21,6 +22,18 @@ api.interceptors.request.use(
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+// Handle 401 errors (logout on invalid token)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // Clear invalid token and redirect to login
+      store.dispatch(logout());
+    }
+    return Promise.reject(error);
+  }
 );
 
 // Auth APIs

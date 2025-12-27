@@ -14,6 +14,8 @@ import { setBottles, setLoading } from '../store/slices/inventorySlice';
 import { formatDistanceToNow } from 'date-fns';
 import syncService from '../services/syncService';
 import { getExpirationStatus } from '../utils/dateUtils';
+import { useSubscription } from '../contexts/SubscriptionContext';
+import { Ionicons } from '@expo/vector-icons';
 
 const HomeScreen = ({ navigation }) => {
   const dispatch = useDispatch();
@@ -22,6 +24,7 @@ const HomeScreen = ({ navigation }) => {
   const [filterStatus, setFilterStatus] = useState('all'); // all, expiring, expired
   const [refreshing, setRefreshing] = useState(false);
   const [showCaptureDialog, setShowCaptureDialog] = useState(false);
+  const { subscriptionStatus, hasReachedBottleLimit, getBottleLimitPercentage } = useSubscription();
 
   useEffect(() => {
     loadBottles();
@@ -107,6 +110,27 @@ const HomeScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      {/* Subscription Status Banner */}
+      {subscriptionStatus.tier === 'free' && (
+        <TouchableOpacity
+          style={styles.subscriptionBanner}
+          onPress={() => navigation.navigate('Paywall')}
+        >
+          <View style={styles.bannerContent}>
+            <Ionicons name="rocket-outline" size={20} color="#fff" />
+            <View style={styles.bannerTextContainer}>
+              <Text style={styles.bannerText}>
+                {subscriptionStatus.bottleCount}/{subscriptionStatus.bottleLimit} bottles used
+              </Text>
+              <Text style={styles.bannerSubtext}>
+                Upgrade for unlimited bottles & AI OCR
+              </Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#fff" />
+        </TouchableOpacity>
+      )}
+      
       <Searchbar
         placeholder="Search bottles..."
         onChangeText={setSearchQuery}
@@ -282,6 +306,33 @@ const styles = StyleSheet.create({
   dialogOptionDesc: {
     fontSize: 14,
     color: '#666',
+  },
+  subscriptionBanner: {
+    backgroundColor: '#2196F3',
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  bannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  bannerTextContainer: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  bannerText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  bannerSubtext: {
+    color: '#fff',
+    fontSize: 12,
+    opacity: 0.9,
+    marginTop: 2,
   },
 });
 

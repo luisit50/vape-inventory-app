@@ -6,6 +6,7 @@ import { Provider as ReduxProvider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from './src/store/store';
 import { useSelector } from 'react-redux';
+import { SubscriptionProvider } from './src/contexts/SubscriptionContext';
 
 // Screens
 import LoginScreen from './src/screens/LoginScreen';
@@ -15,6 +16,7 @@ import CameraScreen from './src/screens/CameraScreen';
 import MultiCaptureScreen from './src/screens/MultiCaptureScreen';
 import ReviewCaptureScreen from './src/screens/ReviewCaptureScreen';
 import BottleDetailScreen from './src/screens/BottleDetailScreen';
+import PaywallScreen from './src/screens/PaywallScreen';
 
 const Stack = createStackNavigator();
 
@@ -60,6 +62,11 @@ const AppStack = () => (
       component={BottleDetailScreen}
       options={{ title: 'Bottle Details' }}
     />
+    <Stack.Screen 
+      name="Paywall" 
+      component={PaywallScreen}
+      options={{ headerShown: false }}
+    />
   </Stack.Navigator>
 );
 
@@ -77,9 +84,11 @@ export default function App() {
   return (
     <ReduxProvider store={store}>
       <PersistGate loading={null} persistor={persistor}>
-        <PaperProvider>
-          <Navigation />
-        </PaperProvider>
+        <SubscriptionProvider>
+          <PaperProvider>
+            <Navigation />
+          </PaperProvider>
+        </SubscriptionProvider>
       </PersistGate>
     </ReduxProvider>
   );

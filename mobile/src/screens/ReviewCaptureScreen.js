@@ -11,12 +11,13 @@ import {
   Platform,
 } from 'react-native';
 import { TextInput, Button, Text, Chip } from 'react-native-paper';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { extractBottleData, extractMultiFieldData } from '../services/ocrService';
 import { addBottle, addPendingBottle } from '../store/slices/inventorySlice';
 import { inventoryAPI } from '../services/api';
 import syncService from '../services/syncService';
+import { useSubscription } from '../contexts/SubscriptionContext';
 
 const ReviewCaptureScreen = ({ route, navigation }) => {
   const { imageUri, imageUris, multiCapture } = route.params;
@@ -25,6 +26,7 @@ const ReviewCaptureScreen = ({ route, navigation }) => {
   const [saving, setSaving] = useState(false);
   const [showRawTexts, setShowRawTexts] = useState(false);
   const [rawTexts, setRawTexts] = useState({});
+  const { hasReachedBottleLimit, subscriptionStatus } = useSubscription();
   
   const [formData, setFormData] = useState({
     name: '',
@@ -73,6 +75,19 @@ const ReviewCaptureScreen = ({ route, navigation }) => {
     // Validate required fields
     if (!formData.name || !formData.expirationDate) {
       Alert.alert('Error', 'Please fill in at least name and expiration date');
+      return;
+    }
+
+    // Check bottle limit for free users
+    if (hasReachedBottleLimit()) {
+      Alert.alert(
+        'Bottle Limit Reached',
+        `You've reached the ${subscriptionStatus.bottleLimit} bottle limit on the free plan. Upgrade to Premium for unlimited bottles!`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Upgrade', onPress: () => navigation.navigate('Paywall', { from: 'save' }) }
+        ]
+      );
       return;
     }
 
@@ -251,8 +266,7 @@ const ReviewCaptureScreen = ({ route, navigation }) => {
           <Button
             mode="contained"
             onPress={handleSave}
-      </ScrollView>
-    </KeyboardAvoidingstyle={[styles.button, styles.saveButton]}
+            style={[styles.button, styles.saveButton]}
             loading={saving}
             disabled={saving}
           >
@@ -260,7 +274,8 @@ const ReviewCaptureScreen = ({ route, navigation }) => {
           </Button>
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
