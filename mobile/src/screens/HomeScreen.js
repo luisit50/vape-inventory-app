@@ -12,7 +12,7 @@ import { Text, FAB, Searchbar, Chip, Card, Portal, Dialog, Button, IconButton } 
 import { inventoryAPI } from '../services/api';
 import { formatDistanceToNow } from 'date-fns';
 import syncService from '../services/syncService';
-import { getExpirationStatus } from '../utils/dateUtils';
+import { getExpirationStatus, formatDate } from '../utils/dateUtils';
 import { Ionicons } from '@expo/vector-icons';
 
 
@@ -238,7 +238,7 @@ const HomeScreen = ({ navigation, route }) => {
                 {`Batch: ${item.batchNumber}`}
               </Text>
               <Text style={styles.detailText}>
-                {`Exp: ${item.expirationDate}`}
+                {`Exp: ${formatDate(item.expirationDate)}`}
               </Text>
             </View>
           </Card.Content>

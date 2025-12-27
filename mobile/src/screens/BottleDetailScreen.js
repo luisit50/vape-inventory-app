@@ -11,7 +11,7 @@ import {
 import { Text, Button, Card, TextInput } from 'react-native-paper';
 import { inventoryAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import { getExpirationStatus } from '../utils/dateUtils';
+import { getExpirationStatus, formatDate } from '../utils/dateUtils';
 
 const BottleDetailScreen = ({ route, navigation }) => {
   const { token } = useAuth();
@@ -139,7 +139,7 @@ const BottleDetailScreen = ({ route, navigation }) => {
 
                 <View style={styles.detailRow}>
                   <Text style={styles.label}>Expiration Date:</Text>
-                  <Text style={styles.value}>{bottle.expirationDate}</Text>
+                  <Text style={styles.value}>{formatDate(bottle.expirationDate)}</Text>
                 </View>
 
                 {bottle.capturedAt && (
