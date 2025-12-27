@@ -126,8 +126,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 15,
-  },
-  statusContainer: {
+  },  brandLabel: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 5,
+  },  statusContainer: {
     marginBottom: 20,
   },
   statusBadge: {

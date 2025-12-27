@@ -113,7 +113,7 @@ const HomeScreen = ({ navigation }) => {
       <TouchableOpacity
         onPress={() => navigation.navigate('BottleDetail', { bottle: item })}
       >
-        <Card style={[styles.card, { borderLeftColor: expStatus.color }]}>...
+        <Card style={[styles.card, { borderLeftColor: expStatus.color }]}>
           <Card.Content>
             <View style={styles.cardHeader}>
               <Text style={styles.bottleName}>{item.name}</Text>
@@ -130,13 +130,13 @@ const HomeScreen = ({ navigation }) => {
             
             <View style={styles.cardDetails}>
               <Text style={styles.detailText}>
-                {item.mg} • {item.bottleSize}
+                {`${item.mg} • ${item.bottleSize}`}
               </Text>
               <Text style={styles.detailText}>
-                Batch: {item.batchNumber}
+                {`Batch: ${item.batchNumber}`}
               </Text>
               <Text style={styles.detailText}>
-                Exp: {item.expirationDate}
+                {`Exp: ${item.expirationDate}`}
               </Text>
             </View>
           </Card.Content>
@@ -283,6 +283,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     flex: 1,
+  },
+  brandLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 5,
   },
   cardDetails: {
     marginTop: 5,

@@ -106,7 +106,7 @@ export default function App() {
 
   return (
     <PaperProvider>
-      <AuthContext.Provider value={{ token, setToken, logout: handleLogout }}>
+      <AuthContext.Provider value={{ token, setToken: handleLogin, logout: handleLogout }}>
         <Navigation isAuthenticated={!!token} />
       </AuthContext.Provider>
     </PaperProvider>

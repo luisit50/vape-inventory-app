@@ -95,6 +95,7 @@ router.post('/extract-smart', auth, requireSubscription('premium'), upload.singl
 // Multi-field AI-enhanced extraction
 router.post('/extract-multi-smart', upload.fields([
   { name: 'name', maxCount: 1 },
+  { name: 'brand', maxCount: 1 },
   { name: 'mg', maxCount: 1 },
   { name: 'bottleSize', maxCount: 1 },
   { name: 'batchNumber', maxCount: 1 },
@@ -178,6 +179,7 @@ router.post('/extract-multi-smart', upload.fields([
 function getFieldPrompt(fieldName) {
   const prompts = {
     name: "Extract ONLY the product name from this image. Return just the name, nothing else.",
+    brand: "Extract ONLY the brand name from this image. Return just the brand name, nothing else.",
     mg: "Extract ONLY the nicotine strength number (without 'mg') from this image. Return just the number.",
     bottleSize: "Extract ONLY the bottle size number in ml (without 'ml') from this image. Return just the number.",
     batchNumber: "Extract ONLY the batch or lot number from this image. Return just the code.",
@@ -207,6 +209,7 @@ function cleanFieldValue(fieldName, value) {
 function extractBasicData(text) {
   return {
     name: text.split('\n')[0] || '',
+    brand: text.split('\n')[1] || '',
     mg: text.match(/(\d+)\s*mg/i)?.[1] || '',
     bottleSize: text.match(/(\d+)\s*ml/i)?.[1] || '',
     batchNumber: text.match(/(?:batch|lot)[:\s]*([A-Z0-9]+)/i)?.[1] || '',
