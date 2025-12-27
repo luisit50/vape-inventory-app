@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { store } from '../store/store';
 
-const API_URL = 'https://inventorydashboard.discloud.app/api'; // Your computer's IP with backend port
+const API_URL = 'https://vape-inventory-app.onrender.com/api'; // Render backend
 
 const api = axios.create({
   baseURL: API_URL,

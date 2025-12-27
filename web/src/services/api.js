@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'https://inventorydashboard.discloud.app/api';
+const API_URL = 'https://vape-inventory-app.onrender.com/api';
 
 const api = axios.create({
   baseURL: API_URL,
