@@ -28,6 +28,14 @@ const Dashboard = () => {
 
   useEffect(() => {
     loadBottles();
+    
+    // Auto-refresh every 10 seconds
+    const interval = setInterval(() => {
+      loadBottles();
+    }, 10000); // 10 seconds
+    
+    // Cleanup interval on unmount
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
