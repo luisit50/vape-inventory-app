@@ -19,8 +19,9 @@ import {
   DialogActions,
   Button,
   CardActions,
+  Checkbox,
 } from '@mui/material';
-import { Refresh as RefreshIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { Refresh as RefreshIcon, Edit as EditIcon, Delete as DeleteIcon, DeleteSweep as DeleteSweepIcon } from '@mui/icons-material';
 import { inventoryAPI } from '../services/api';
 import { getExpirationStatus, formatDate } from '../utils/dateUtils';
 
@@ -36,6 +37,8 @@ const Dashboard = () => {
   const [deleteDialog, setDeleteDialog] = useState({ open: false, bottle: null });
   const [editFormData, setEditFormData] = useState({});
   const [saving, setSaving] = useState(false);
+  const [selectedBottles, setSelectedBottles] = useState([]);
+  const [bulkDeleteDialog, setBulkDeleteDialog] = useState(false);
 
   useEffect(() => {
     loadBottles();
@@ -169,6 +172,45 @@ const Dashboard = () => {
     }
   };
 
+  const handleSelectBottle = (bottleId) => {
+    setSelectedBottles(prev => 
+      prev.includes(bottleId) 
+        ? prev.filter(id => id !== bottleId)
+        : [...prev, bottleId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedBottles.length === filteredBottles.length) {
+      setSelectedBottles([]);
+    } else {
+      setSelectedBottles(filteredBottles.map(b => b._id));
+    }
+  };
+
+  const handleBulkDeleteOpen = () => {
+    setBulkDeleteDialog(true);
+  };
+
+  const handleBulkDeleteClose = () => {
+    setBulkDeleteDialog(false);
+  };
+
+  const handleBulkDeleteConfirm = async () => {
+    setSaving(true);
+    try {
+      await Promise.all(selectedBottles.map(id => inventoryAPI.deleteBottle(id)));
+      await loadBottles();
+      setSelectedBottles([]);
+      handleBulkDeleteClose();
+    } catch (err) {
+      alert('Failed to delete bottles');
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const getStats = () => {
     const critical = bottles.filter(b => {
       const s = getExpirationStatus(b.expirationDate);
@@ -284,6 +326,34 @@ const Dashboard = () => {
         <Tab label={`Good (${stats.good})`} />
       </Tabs>
 
+      {/* Selection Controls */}
+      {filteredBottles.length > 0 && (
+        <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Checkbox
+              checked={selectedBottles.length === filteredBottles.length && filteredBottles.length > 0}
+              indeterminate={selectedBottles.length > 0 && selectedBottles.length < filteredBottles.length}
+              onChange={handleSelectAll}
+            />
+            <Typography variant="body2">
+              {selectedBottles.length === 0 
+                ? 'Select bottles to delete multiple at once'
+                : `${selectedBottles.length} selected`}
+            </Typography>
+          </Box>
+          {selectedBottles.length > 0 && (
+            <Button
+              variant="contained"
+              color="error"
+              startIcon={<DeleteSweepIcon />}
+              onClick={handleBulkDeleteOpen}
+            >
+              Delete Selected ({selectedBottles.length})
+            </Button>
+          )}
+        </Box>
+      )}
+
       {/* Bottles Grid */}
       <Grid container spacing={2}>
         {filteredBottles.map((bottle) => {
@@ -296,9 +366,15 @@ const Dashboard = () => {
                   borderLeft: `6px solid ${expStatus.color}`,
                   height: '100%',
                   bgcolor: expStatus.bgColor,
+                  position: 'relative',
                 }}
               >
-                <CardContent>
+                <Checkbox
+                  checked={selectedBottles.includes(bottle._id)}
+                  onChange={() => handleSelectBottle(bottle._id)}
+                  sx={{ position: 'absolute', top: 8, left: 8, zIndex: 1 }}
+                />
+                <CardContent sx={{ pt: 5 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                     <Typography variant="h6" component="div" sx={{ fontWeight: 'bold' }}>
                       {bottle.name}
@@ -439,6 +515,25 @@ const Dashboard = () => {
           <Button onClick={handleDeleteClose} disabled={saving}>Cancel</Button>
           <Button onClick={handleDeleteConfirm} variant="contained" color="error" disabled={saving}>
             {saving ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <Dialog open={bulkDeleteDialog} onClose={handleBulkDeleteClose}>
+        <DialogTitle>Delete Multiple Bottles</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete <strong>{selectedBottles.length} bottle{selectedBottles.length > 1 ? 's' : ''}</strong>?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleBulkDeleteClose} disabled={saving}>Cancel</Button>
+          <Button onClick={handleBulkDeleteConfirm} variant="contained" color="error" disabled={saving}>
+            {saving ? 'Deleting...' : `Delete ${selectedBottles.length} Bottles`}
           </Button>
         </DialogActions>
       </Dialog>

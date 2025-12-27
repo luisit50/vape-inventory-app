@@ -27,6 +27,8 @@ const HomeScreen = ({ navigation, route }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [showCaptureDialog, setShowCaptureDialog] = useState(false);
   const [error, setError] = useState('');
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedBottles, setSelectedBottles] = useState([]);
 
   // Load bottles on mount and when token changes
   useEffect(() => {
@@ -54,16 +56,37 @@ const HomeScreen = ({ navigation, route }) => {
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <IconButton
-          icon="logout"
-          color="#4CAF50"
-          size={24}
-          onPress={logout}
-          accessibilityLabel="Logout"
-        />
+        <View style={{ flexDirection: 'row' }}>
+          {!selectionMode ? (
+            <>
+              <IconButton
+                icon="checkbox-multiple-marked"
+                color="#4CAF50"
+                size={24}
+                onPress={() => setSelectionMode(true)}
+                accessibilityLabel="Select multiple"
+              />
+              <IconButton
+                icon="logout"
+                color="#4CAF50"
+                size={24}
+                onPress={logout}
+                accessibilityLabel="Logout"
+              />
+            </>
+          ) : (
+            <IconButton
+              icon="close"
+              color="#4CAF50"
+              size={24}
+              onPress={handleCancelSelection}
+              accessibilityLabel="Cancel selection"
+            />
+          )}
+        </View>
       ),
     });
-  }, [navigation, logout]);
+  }, [navigation, logout, selectionMode]);
 
   const loadBottles = async () => {
     try {
@@ -88,6 +111,52 @@ const HomeScreen = ({ navigation, route }) => {
     setRefreshing(true);
     await loadBottles();
     setRefreshing(false);
+  };
+
+  const handleToggleSelection = (bottleId) => {
+    setSelectedBottles(prev => 
+      prev.includes(bottleId)
+        ? prev.filter(id => id !== bottleId)
+        : [...prev, bottleId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedBottles.length === filteredBottles.length) {
+      setSelectedBottles([]);
+    } else {
+      setSelectedBottles(filteredBottles.map(b => b._id));
+    }
+  };
+
+  const handleDeleteSelected = () => {
+    Alert.alert(
+      'Delete Multiple Bottles',
+      `Are you sure you want to delete ${selectedBottles.length} bottle${selectedBottles.length > 1 ? 's' : ''}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await Promise.all(selectedBottles.map(id => inventoryAPI.deleteBottle(id, token)));
+              setSelectedBottles([]);
+              setSelectionMode(false);
+              await loadBottles();
+              Alert.alert('Success', `${selectedBottles.length} bottle${selectedBottles.length > 1 ? 's' : ''} deleted`);
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete bottles');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleCancelSelection = () => {
+    setSelectionMode(false);
+    setSelectedBottles([]);
   };
 
   // Logout logic removed
@@ -115,14 +184,40 @@ const HomeScreen = ({ navigation, route }) => {
 
   const renderBottle = ({ item }) => {
     const expStatus = getExpirationStatus(item.expirationDate);
+    const isSelected = selectedBottles.includes(item._id);
     
     return (
       <TouchableOpacity
-        onPress={() => navigation.navigate('BottleDetail', { bottle: item })}
+        onPress={() => {
+          if (selectionMode) {
+            handleToggleSelection(item._id);
+          } else {
+            navigation.navigate('BottleDetail', { bottle: item });
+          }
+        }}
+        onLongPress={() => {
+          if (!selectionMode) {
+            setSelectionMode(true);
+            setSelectedBottles([item._id]);
+          }
+        }}
       >
-        <Card style={[styles.card, { borderLeftColor: expStatus.color }]}>
+        <Card style={[
+          styles.card, 
+          { borderLeftColor: expStatus.color },
+          isSelected && styles.selectedCard
+        ]}>
           <Card.Content>
             <View style={styles.cardHeader}>
+              {selectionMode && (
+                <Chip 
+                  mode="outlined"
+                  selected={isSelected}
+                  style={{ marginRight: 10 }}
+                >
+                  {isSelected ? '✓' : ' '}
+                </Chip>
+              )}
               <Text style={styles.bottleName}>{item.name}</Text>
               {item.brand ? (
                 <Text style={styles.brandLabel}>Brand: {item.brand}</Text>
@@ -187,6 +282,26 @@ const HomeScreen = ({ navigation, route }) => {
         </Chip>
       </View>
 
+      {selectionMode && (
+        <View style={styles.selectionToolbar}>
+          <Button
+            mode="outlined"
+            onPress={handleSelectAll}
+            style={{ marginRight: 10 }}
+          >
+            {selectedBottles.length === filteredBottles.length ? 'Deselect All' : 'Select All'}
+          </Button>
+          <Button
+            mode="contained"
+            buttonColor="#f44336"
+            onPress={handleDeleteSelected}
+            disabled={selectedBottles.length === 0}
+          >
+            Delete ({selectedBottles.length})
+          </Button>
+        </View>
+      )}
+
       {error ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>{error}</Text>
@@ -211,12 +326,14 @@ const HomeScreen = ({ navigation, route }) => {
         />
       )}
 
-      <FAB
-        style={styles.fab}
-        icon="camera"
-        onPress={() => setShowCaptureDialog(true)}
-        label="Add Bottle"
-      />
+      {!selectionMode && (
+        <FAB
+          style={styles.fab}
+          icon="camera"
+          onPress={() => setShowCaptureDialog(true)}
+          label="Add Bottle"
+        />
+      )}
 
       <Portal>
         <Dialog visible={showCaptureDialog} onDismiss={() => setShowCaptureDialog(false)}>
@@ -280,6 +397,9 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderLeftWidth: 5,
   },
+  selectedCard: {
+    backgroundColor: '#E3F2FD',
+  },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -342,6 +462,15 @@ const styles = StyleSheet.create({
   dialogOptionDesc: {
     fontSize: 14,
     color: '#666',
+  },
+  selectionToolbar: {
+    flexDirection: 'row',
+    padding: 10,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   subscriptionBanner: {
     backgroundColor: '#2196F3',
