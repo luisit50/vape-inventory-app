@@ -36,8 +36,10 @@ const Dashboard = () => {
         const response = await inventoryAPI.getAllBottles();
         const newData = response.data;
         
-        // Create a signature of the data (IDs only)
-        const newSignature = newData.map(b => b._id).sort().join(',');
+        // Create a signature of the data (includes content for edit detection)
+        const newSignature = newData.map(b => 
+          `${b._id}-${b.name}-${b.brand}-${b.mg}-${b.bottleSize}-${b.batchNumber}-${b.expirationDate}`
+        ).sort().join('|');
         
         // Only update if data actually changed
         if (newSignature !== lastCheckRef.current) {

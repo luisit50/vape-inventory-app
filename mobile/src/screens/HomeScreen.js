@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useAuth } from '../contexts/AuthContext';
 
-const HomeScreen = ({ navigation }) => {
+const HomeScreen = ({ navigation, route }) => {
   const { token, logout } = useAuth();
   const [bottles, setBottles] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -34,6 +34,13 @@ const HomeScreen = ({ navigation }) => {
       loadBottles();
     }
   }, [token]);
+
+  // Reload bottles when route params change (e.g., after edit)
+  useEffect(() => {
+    if (route.params?.refresh && token) {
+      loadBottles();
+    }
+  }, [route.params?.refresh, token]);
 
   // Reload bottles every time HomeScreen is focused
   useFocusEffect(

@@ -28,6 +28,7 @@ const ReviewCaptureScreen = ({ navigation, route }) => {
     batchNumber: '',
     expirationDate: '',
   });
+  const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [multiCapture, setMultiCapture] = useState(false);
@@ -92,6 +93,10 @@ const ReviewCaptureScreen = ({ navigation, route }) => {
       Alert.alert('Error', 'Please fill in at least name and expiration date');
       return;
     }
+    if (quantity < 1 || quantity > 100) {
+      Alert.alert('Error', 'Quantity must be between 1 and 100');
+      return;
+    }
     setSaving(true);
     try {
       const isOnline = await syncService.checkConnection();
@@ -99,9 +104,21 @@ const ReviewCaptureScreen = ({ navigation, route }) => {
         ...formData,
         capturedAt: new Date().toISOString(),
       };
+      
+      // Create multiple bottles if quantity > 1
+      const promises = [];
+      for (let i = 0; i < quantity; i++) {
+        if (isOnline) {
+          promises.push(inventoryAPI.createBottle(bottleData, token));
+        }
+      }
+      
       if (isOnline) {
-        await inventoryAPI.createBottle(bottleData, token);
-        Alert.alert('Success', 'Bottle added to inventory');
+        await Promise.all(promises);
+        const message = quantity === 1 
+          ? 'Bottle added to inventory'
+          : `${quantity} bottles added to inventory`;
+        Alert.alert('Success', message);
       } else {
         Alert.alert('Saved Offline', 'Bottle will sync when online');
       }
@@ -111,7 +128,7 @@ const ReviewCaptureScreen = ({ navigation, route }) => {
       });
     } catch (error) {
       console.error('Save error:', error);
-      Alert.alert('Error', 'Failed to save bottle');
+      Alert.alert('Error', 'Failed to save bottle(s)');
     } finally {
       setSaving(false);
     }
@@ -252,6 +269,42 @@ const ReviewCaptureScreen = ({ navigation, route }) => {
           placeholder="MM/DD/YYYY"
         />
         
+        <View style={styles.quantityContainer}>
+          <Text style={styles.quantityLabel}>Quantity (How many bottles?):</Text>
+          <View style={styles.quantityControls}>
+            <TouchableOpacity
+              onPress={() => setQuantity(Math.max(1, quantity - 1))}
+              style={styles.quantityButton}
+              disabled={saving || quantity <= 1}
+            >
+              <Ionicons name="remove" size={24} color={quantity <= 1 ? "#ccc" : "#2196F3"} />
+            </TouchableOpacity>
+            
+            <TextInput
+              value={String(quantity)}
+              onChangeText={(text) => {
+                const num = parseInt(text) || 1;
+                setQuantity(Math.min(100, Math.max(1, num)));
+              }}
+              mode="outlined"
+              keyboardType="number-pad"
+              style={styles.quantityInput}
+              disabled={saving}
+            />
+            
+            <TouchableOpacity
+              onPress={() => setQuantity(Math.min(100, quantity + 1))}
+              style={styles.quantityButton}
+              disabled={saving || quantity >= 100}
+            >
+              <Ionicons name="add" size={24} color={quantity >= 100 ? "#ccc" : "#2196F3"} />
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.quantityHint}>
+            {quantity === 1 ? 'Adding 1 bottle' : `Adding ${quantity} bottles with the same information`}
+          </Text>
+        </View>
+        
         <View style={styles.buttonContainer}>
           <Button
             mode="outlined"
@@ -376,6 +429,42 @@ const styles = StyleSheet.create({
   },
   input: {
     marginBottom: 15,
+  },
+  quantityContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  quantityLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+  },
+  quantityControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  quantityButton: {
+    padding: 10,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+  },
+  quantityInput: {
+    width: 80,
+    marginHorizontal: 15,
+    textAlign: 'center',
+  },
+  quantityHint: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   buttonContainer: {
     flexDirection: 'row',
