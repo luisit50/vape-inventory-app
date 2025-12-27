@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Container,
   Typography,
@@ -25,28 +25,43 @@ const Dashboard = () => {
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [tabValue, setTabValue] = useState(0); // 0: All, 1: Critical, 2: Warning, 3: Good
+  const lastCheckRef = useRef('');
 
   useEffect(() => {
-    loadBottles(true); // Initial load with loading spinner
+    loadBottles();
     
-    // Auto-refresh every 10 seconds (silent, no loading spinner)
-    const interval = setInterval(() => {
-      loadBottles(false); // Background refresh without spinner
-    }, 10000); // 10 seconds
+    // Silent background polling every 5 seconds
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await inventoryAPI.getAllBottles();
+        const newData = response.data;
+        
+        // Create a signature of the data (IDs only)
+        const newSignature = newData.map(b => b._id).sort().join(',');
+        
+        // Only update if data actually changed
+        if (newSignature !== lastCheckRef.current) {
+          lastCheckRef.current = newSignature;
+          setBottles(newData);
+        }
+      } catch (err) {
+        // Silently fail on background checks
+        console.log('Background refresh failed');
+      }
+    }, 5000); // Check every 5 seconds
     
-    // Cleanup interval on unmount
-    return () => clearInterval(interval);
+    return () => clearInterval(pollInterval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     filterBottles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bottles, searchQuery, tabValue]);
 
-  const loadBottles = async (showLoading = true) => {
+  const loadBottles = async () => {
     try {
-      if (showLoading) {
-        setLoading(true);
-      }
+      setLoading(true);
       setError('');
       const response = await inventoryAPI.getAllBottles();
       setBottles(response.data);
