@@ -7,6 +7,8 @@ import {
   Alert,
   ActivityIndicator,
   TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { TextInput, Button, Text, Chip } from 'react-native-paper';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -123,7 +125,15 @@ const ReviewCaptureScreen = ({ route, navigation }) => {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+    >
+      <ScrollView 
+        style={styles.container}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.scrollContent}
+      >
       {multiCapture && imageUris ? (
         // Show field-specific images
         <ScrollView horizontal style={styles.imageGallery} showsHorizontalScrollIndicator={false}>
@@ -241,7 +251,8 @@ const ReviewCaptureScreen = ({ route, navigation }) => {
           <Button
             mode="contained"
             onPress={handleSave}
-            style={[styles.button, styles.saveButton]}
+      </ScrollView>
+    </KeyboardAvoidingstyle={[styles.button, styles.saveButton]}
             loading={saving}
             disabled={saving}
           >
@@ -257,6 +268,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  scrollContent: {
+    paddingBottom: 100, // Extra space at bottom for keyboard
   },
   loadingContainer: {
     flex: 1,
