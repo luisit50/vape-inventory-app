@@ -48,6 +48,7 @@ router.post('/', [
   auth,
   checkBottleLimit, // Check if free user reached limit
   body('name').trim().notEmpty().withMessage('Name is required'),
+  body('brand').optional().trim(),
   body('expirationDate').notEmpty().withMessage('Expiration date is required'),
 ], async (req, res) => {
   try {

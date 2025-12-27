@@ -80,6 +80,7 @@ const Dashboard = () => {
     if (searchQuery) {
       filtered = filtered.filter(bottle =>
         bottle.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        bottle.brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         bottle.batchNumber?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
@@ -243,18 +244,20 @@ const Dashboard = () => {
                     />
                   </Box>
                   
+                  {bottle.brand && (
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      <strong>Brand:</strong> {bottle.brand}
+                    </Typography>
+                  )}
                   <Typography variant="body2" color="text.secondary" gutterBottom>
                     <strong>Strength:</strong> {bottle.mg || 'N/A'}
                   </Typography>
-                  
                   <Typography variant="body2" color="text.secondary" gutterBottom>
                     <strong>Size:</strong> {bottle.bottleSize || 'N/A'}
                   </Typography>
-                  
                   <Typography variant="body2" color="text.secondary" gutterBottom>
                     <strong>Batch:</strong> {bottle.batchNumber || 'N/A'}
                   </Typography>
-                  
                   <Typography variant="body2" color="text.secondary">
                     <strong>Expires:</strong> {formatDate(bottle.expirationDate)}
                   </Typography>

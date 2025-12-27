@@ -11,6 +11,11 @@ const bottleSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
+  brand: {
+    type: String,
+    trim: true,
+    default: '',
+  },
   mg: {
     type: String,
     trim: true,

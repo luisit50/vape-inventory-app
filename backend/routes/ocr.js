@@ -202,6 +202,11 @@ const FIELD_CONFIGS = {
       tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 -&.',
     },
   },
+  brand: {
+    tesseractConfig: {
+      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 -&.',
+    },
+  },
   mg: {
     tesseractConfig: {
       tessedit_char_whitelist: '0123456789mgMG ',
@@ -223,10 +228,19 @@ const FIELD_CONFIGS = {
     },
   },
 };
+// Extract brand name (simple: first line, or similar to extractName)
+function extractBrand(text) {
+  const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 2);
+  if (lines.length > 0) {
+    return lines[0];
+  }
+  return '';
+}
 
 // Multi-field OCR endpoint
 router.post('/extract-multi', upload.fields([
   { name: 'name', maxCount: 1 },
+  { name: 'brand', maxCount: 1 },
   { name: 'mg', maxCount: 1 },
   { name: 'bottleSize', maxCount: 1 },
   { name: 'batchNumber', maxCount: 1 },
@@ -274,6 +288,9 @@ router.post('/extract-multi', upload.fields([
           switch(fieldName) {
             case 'name':
               extractedValue = extractName(text);
+              break;
+            case 'brand':
+              extractedValue = extractBrand(text);
               break;
             case 'mg':
               extractedValue = extractMg(text);
