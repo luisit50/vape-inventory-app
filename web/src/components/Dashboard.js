@@ -13,8 +13,14 @@ import {
   Tab,
   Alert,
   CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  CardActions,
 } from '@mui/material';
-import { Refresh as RefreshIcon } from '@mui/icons-material';
+import { Refresh as RefreshIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { inventoryAPI } from '../services/api';
 import { getExpirationStatus, formatDate } from '../utils/dateUtils';
 
@@ -26,6 +32,10 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [tabValue, setTabValue] = useState(0); // 0: All, 1: Critical, 2: Warning, 3: Good
   const lastCheckRef = useRef('');
+  const [editDialog, setEditDialog] = useState({ open: false, bottle: null });
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, bottle: null });
+  const [editFormData, setEditFormData] = useState({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadBottles();
@@ -99,6 +109,64 @@ const Dashboard = () => {
     }
 
     setFilteredBottles(filtered);
+  };
+
+  const handleEditOpen = (bottle) => {
+    setEditFormData({
+      name: bottle.name || '',
+      brand: bottle.brand || '',
+      mg: bottle.mg || '',
+      bottleSize: bottle.bottleSize || '',
+      batchNumber: bottle.batchNumber || '',
+      expirationDate: bottle.expirationDate || '',
+    });
+    setEditDialog({ open: true, bottle });
+  };
+
+  const handleEditClose = () => {
+    setEditDialog({ open: false, bottle: null });
+    setEditFormData({});
+  };
+
+  const handleEditSave = async () => {
+    if (!editFormData.name || !editFormData.expirationDate) {
+      alert('Name and expiration date are required');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await inventoryAPI.updateBottle(editDialog.bottle._id, editFormData);
+      await loadBottles();
+      handleEditClose();
+    } catch (err) {
+      alert('Failed to update bottle');
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteOpen = (bottle) => {
+    setDeleteDialog({ open: true, bottle });
+  };
+
+  const handleDeleteClose = () => {
+    setDeleteDialog({ open: false, bottle: null });
+  };
+
+  const handleDeleteConfirm = async () => {
+    setSaving(true);
+    try {
+      await inventoryAPI.deleteBottle(deleteDialog.bottle._id);
+      await loadBottles();
+      handleDeleteClose();
+    } catch (err) {
+      alert('Failed to delete bottle');
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const getStats = () => {
@@ -264,6 +332,24 @@ const Dashboard = () => {
                     <strong>Expires:</strong> {formatDate(bottle.expirationDate)}
                   </Typography>
                 </CardContent>
+                <CardActions sx={{ justifyContent: 'flex-end', pt: 0 }}>
+                  <IconButton 
+                    size="small" 
+                    color="primary"
+                    onClick={() => handleEditOpen(bottle)}
+                    title="Edit bottle"
+                  >
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton 
+                    size="small" 
+                    color="error"
+                    onClick={() => handleDeleteOpen(bottle)}
+                    title="Delete bottle"
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </CardActions>
               </Card>
             </Grid>
           );
@@ -277,6 +363,85 @@ const Dashboard = () => {
           </Typography>
         </Box>
       )}
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialog.open} onClose={handleEditClose} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit Bottle</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
+            <TextField
+              label="Product Name *"
+              fullWidth
+              value={editFormData.name || ''}
+              onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+              disabled={saving}
+            />
+            <TextField
+              label="Brand Name"
+              fullWidth
+              value={editFormData.brand || ''}
+              onChange={(e) => setEditFormData({ ...editFormData, brand: e.target.value })}
+              disabled={saving}
+            />
+            <TextField
+              label="Nicotine Strength (mg)"
+              fullWidth
+              placeholder="e.g., 3mg, 6mg"
+              value={editFormData.mg || ''}
+              onChange={(e) => setEditFormData({ ...editFormData, mg: e.target.value })}
+              disabled={saving}
+            />
+            <TextField
+              label="Bottle Size"
+              fullWidth
+              placeholder="e.g., 30ml, 60ml"
+              value={editFormData.bottleSize || ''}
+              onChange={(e) => setEditFormData({ ...editFormData, bottleSize: e.target.value })}
+              disabled={saving}
+            />
+            <TextField
+              label="Batch Number"
+              fullWidth
+              value={editFormData.batchNumber || ''}
+              onChange={(e) => setEditFormData({ ...editFormData, batchNumber: e.target.value })}
+              disabled={saving}
+            />
+            <TextField
+              label="Expiration Date *"
+              fullWidth
+              placeholder="MM/DD/YYYY"
+              value={editFormData.expirationDate || ''}
+              onChange={(e) => setEditFormData({ ...editFormData, expirationDate: e.target.value })}
+              disabled={saving}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleEditClose} disabled={saving}>Cancel</Button>
+          <Button onClick={handleEditSave} variant="contained" color="primary" disabled={saving}>
+            {saving ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialog.open} onClose={handleDeleteClose}>
+        <DialogTitle>Delete Bottle</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete <strong>{deleteDialog.bottle?.name}</strong>?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteClose} disabled={saving}>Cancel</Button>
+          <Button onClick={handleDeleteConfirm} variant="contained" color="error" disabled={saving}>
+            {saving ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };
