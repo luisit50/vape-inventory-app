@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -11,8 +11,10 @@ import { MaterialIcons } from '@expo/vector-icons';
 
 const CameraScreen = ({ navigation }) => {
   const [permission, requestPermission] = useCameraPermissions();
-  const [cameraRef, setCameraRef] = useState(null);
+  const cameraRef = useRef(null);
   const [flashMode, setFlashMode] = useState('off');
+  const [isCameraReady, setIsCameraReady] = useState(false);
+  const [pictureSize, setPictureSize] = useState(undefined);
 
   React.useEffect(() => {
     if (permission && !permission.granted && permission.canAskAgain) {
@@ -21,14 +23,13 @@ const CameraScreen = ({ navigation }) => {
   }, [permission]);
 
   const takePicture = async () => {
-    if (cameraRef) {
+    if (cameraRef.current && isCameraReady) {
       try {
-        const photo = await cameraRef.takePictureAsync({
-          quality: 0.8,
+        const photo = await cameraRef.current.takePictureAsync({
+          quality: 1,
           base64: false,
+          pictureSize: pictureSize,
         });
-        
-        // Navigate to review screen with the captured image
         navigation.navigate('ReviewCapture', { imageUri: photo.uri });
       } catch (error) {
         console.error('Error taking picture:', error);
@@ -56,13 +57,31 @@ const CameraScreen = ({ navigation }) => {
     );
   }
 
+  // Set highest supported picture size when camera is ready
+  const handleCameraReady = async () => {
+    setIsCameraReady(true);
+    if (cameraRef.current && cameraRef.current.getAvailablePictureSizesAsync) {
+      try {
+        const sizes = await cameraRef.current.getAvailablePictureSizesAsync();
+        if (sizes && sizes.length > 0) {
+          setPictureSize(sizes[sizes.length - 1]); // Use the largest size
+        }
+      } catch (e) {
+        // fallback: do nothing
+      }
+    }
+  };
+
   return (
     <View style={styles.container}>
       <CameraView
         style={styles.camera}
         facing="back"
         flash={flashMode}
-        ref={ref => setCameraRef(ref)}
+        autoFocus="on"
+        ref={cameraRef}
+        onCameraReady={handleCameraReady}
+        pictureSize={pictureSize}
       />
       <View style={styles.topBar}>
         <TouchableOpacity 

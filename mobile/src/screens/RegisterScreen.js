@@ -7,12 +7,12 @@ import {
   ScrollView,
 } from 'react-native';
 import { TextInput, Button, Text, Snackbar } from 'react-native-paper';
-import { useDispatch } from 'react-redux';
-import { loginSuccess } from '../store/slices/authSlice';
+// Redux removed
 import { authAPI } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
-const RegisterScreen = ({ navigation }) => {
-  const dispatch = useDispatch();
+const RegisterScreen = () => {
+  const { setToken } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -42,10 +42,8 @@ const RegisterScreen = ({ navigation }) => {
 
     try {
       const response = await authAPI.register({ name, email, password });
-      const { token, user } = response.data;
-      
-      dispatch(loginSuccess({ token, user }));
-      navigation.navigate('Home');
+      const { token } = response.data;
+      await setToken(token);
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');
     } finally {

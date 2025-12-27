@@ -7,14 +7,15 @@ import {
   Alert,
 } from 'react-native';
 import { Text, Button, Card } from 'react-native-paper';
-import { useDispatch } from 'react-redux';
-import { deleteBottle } from '../store/slices/inventorySlice';
+// Redux removed
 import { inventoryAPI } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import { getExpirationStatus } from '../utils/dateUtils';
 
 const BottleDetailScreen = ({ route, navigation }) => {
+  const { token } = useAuth();
   const { bottle } = route.params;
-  const dispatch = useDispatch();
+  // No dispatch needed
   const expStatus = getExpirationStatus(bottle.expirationDate);
 
   const handleDelete = () => {
@@ -28,8 +29,7 @@ const BottleDetailScreen = ({ route, navigation }) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await inventoryAPI.deleteBottle(bottle._id);
-              dispatch(deleteBottle(bottle._id));
+              await inventoryAPI.deleteBottle(bottle._id, token);
               navigation.goBack();
             } catch (error) {
               Alert.alert('Error', 'Failed to delete bottle');
@@ -50,6 +50,9 @@ const BottleDetailScreen = ({ route, navigation }) => {
         <Card style={[styles.card, { borderLeftColor: expStatus.color }]}>
           <Card.Content>
             <Text style={styles.title}>{bottle.name}</Text>
+            {bottle.brand ? (
+              <Text style={styles.brandLabel}>Brand: {bottle.brand}</Text>
+            ) : null}
             
             <View style={styles.statusContainer}>
               <Text style={[styles.statusBadge, { backgroundColor: expStatus.color }]}>

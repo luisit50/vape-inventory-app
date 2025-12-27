@@ -45,6 +45,7 @@ export const extractBottleData = async (imageUri) => {
     // Return empty data if OCR fails - user can enter manually
     return {
       name: '',
+      brand: '',
       mg: '',
       bottleSize: '',
       batchNumber: '',
@@ -109,6 +110,7 @@ export const extractMultiFieldData = async (imageUris, useAI = true) => {
     // Return empty data if OCR fails - user can enter manually
     return {
       name: '',
+      brand: '',
       mg: '',
       bottleSize: '',
       batchNumber: '',

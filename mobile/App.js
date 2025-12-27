@@ -1,13 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { AuthContext } from './src/contexts/AuthContext';
 import { NavigationContainer } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Provider as PaperProvider } from 'react-native-paper';
-import { Provider as ReduxProvider, useDispatch } from 'react-redux';
-import { PersistGate } from 'redux-persist/integration/react';
-import { store, persistor } from './src/store/store';
-import { useSelector } from 'react-redux';
-import { SubscriptionProvider } from './src/contexts/SubscriptionContext';
-import { logout } from './src/store/slices/authSlice';
+// Redux and persistence removed
 import { TouchableOpacity, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
@@ -19,7 +16,7 @@ import CameraScreen from './src/screens/CameraScreen';
 import MultiCaptureScreen from './src/screens/MultiCaptureScreen';
 import ReviewCaptureScreen from './src/screens/ReviewCaptureScreen';
 import BottleDetailScreen from './src/screens/BottleDetailScreen';
-import PaywallScreen from './src/screens/PaywallScreen';
+
 
 const Stack = createStackNavigator();
 
@@ -38,42 +35,15 @@ const AuthStack = () => (
   </Stack.Navigator>
 );
 
-const AppStack = () => {
-  const dispatch = useDispatch();
-  
-  const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: () => dispatch(logout())
-        }
-      ]
-    );
-  };
 
-  return (
-    <Stack.Navigator>
-      <Stack.Screen 
-        name="Home" 
-        component={HomeScreen}
-        options={{
-          title: 'Inventory',
-          headerRight: () => (
-            <TouchableOpacity
-              onPress={handleLogout}
-              style={{ marginRight: 15 }}
-            >
-              <MaterialIcons name="logout" size={24} color="#333" />
-            </TouchableOpacity>
-          )
-        }}
-      />
-      <Stack.Screen 
+const AppStack = () => (
+  <Stack.Navigator>
+    <Stack.Screen 
+      name="Home" 
+      component={HomeScreen}
+      options={{ title: 'Inventory' }}
+    />
+    <Stack.Screen 
       name="Camera" 
       component={CameraScreen}
       options={{ headerShown: false }}
@@ -93,35 +63,52 @@ const AppStack = () => {
       component={BottleDetailScreen}
       options={{ title: 'Bottle Details' }}
     />
-    <Stack.Screen 
-      name="Paywall" 
-      component={PaywallScreen}
-      options={{ headerShown: false }}
-    />
+    {/* PaywallScreen removed */}
   </Stack.Navigator>
-  );
-};
+);
 
-const Navigation = () => {
-  const isAuthenticated = useSelector(state => state.auth.isAuthenticated);
-  
-  return (
-    <NavigationContainer>
-      {isAuthenticated ? <AppStack /> : <AuthStack />}
-    </NavigationContainer>
-  );
-};
+
+
+const Navigation = ({ isAuthenticated }) => (
+  <NavigationContainer>
+    {isAuthenticated ? <AppStack /> : <AuthStack />}
+  </NavigationContainer>
+);
+
 
 export default function App() {
+  const [token, setToken] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Load token from AsyncStorage on mount
+  useEffect(() => {
+    const loadToken = async () => {
+      const storedToken = await AsyncStorage.getItem('token');
+      setToken(storedToken);
+      setLoading(false);
+    };
+    loadToken();
+  }, []);
+
+  // Handler to set token after login
+  const handleLogin = useCallback(async (newToken) => {
+    await AsyncStorage.setItem('token', newToken);
+    setToken(newToken);
+  }, []);
+
+  // Handler to clear token on logout
+  const handleLogout = useCallback(async () => {
+    await AsyncStorage.removeItem('token');
+    setToken(null);
+  }, []);
+
+  if (loading) return null;
+
   return (
-    <ReduxProvider store={store}>
-      <PersistGate loading={null} persistor={persistor}>
-        <SubscriptionProvider>
-          <PaperProvider>
-            <Navigation />
-          </PaperProvider>
-        </SubscriptionProvider>
-      </PersistGate>
-    </ReduxProvider>
+    <PaperProvider>
+      <AuthContext.Provider value={{ token, setToken, logout: handleLogout }}>
+        <Navigation isAuthenticated={!!token} />
+      </AuthContext.Provider>
+    </PaperProvider>
   );
 }

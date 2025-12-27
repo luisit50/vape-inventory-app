@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   StyleSheet,
@@ -8,51 +9,71 @@ import {
   Alert,
 } from 'react-native';
 import { Text, FAB, Searchbar, Chip, Card, Portal, Dialog, Button, IconButton } from 'react-native-paper';
-import { useDispatch, useSelector } from 'react-redux';
 import { inventoryAPI } from '../services/api';
-import { setBottles, setLoading } from '../store/slices/inventorySlice';
-import { logout } from '../store/slices/authSlice';
 import { formatDistanceToNow } from 'date-fns';
 import syncService from '../services/syncService';
 import { getExpirationStatus } from '../utils/dateUtils';
-import { useSubscription } from '../contexts/SubscriptionContext';
 import { Ionicons } from '@expo/vector-icons';
 
+
+import { useAuth } from '../contexts/AuthContext';
+
 const HomeScreen = ({ navigation }) => {
-  const dispatch = useDispatch();
-  const { bottles, loading } = useSelector(state => state.inventory);
+  const { token, logout } = useAuth();
+  const [bottles, setBottles] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all'); // all, expiring, expired
   const [refreshing, setRefreshing] = useState(false);
   const [showCaptureDialog, setShowCaptureDialog] = useState(false);
-  const { subscriptionStatus, hasReachedBottleLimit, getBottleLimitPercentage, refreshSubscriptionStatus } = useSubscription();
+  const [error, setError] = useState('');
+
+  // Load bottles on mount and when token changes
+  useEffect(() => {
+    if (token) {
+      loadBottles();
+    }
+  }, [token]);
+
+  // Reload bottles every time HomeScreen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      if (token) {
+        loadBottles();
+      }
+    }, [token])
+  );
 
   useEffect(() => {
-    loadBottles();
-    refreshSubscriptionStatus(); // Refresh bottle count when screen loads
-  }, []);
-
-  // Also refresh when screen comes into focus
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      refreshSubscriptionStatus();
+    navigation.setOptions({
+      headerRight: () => (
+        <IconButton
+          icon="logout"
+          color="#4CAF50"
+          size={24}
+          onPress={logout}
+          accessibilityLabel="Logout"
+        />
+      ),
     });
-    return unsubscribe;
-  }, [navigation]);
+  }, [navigation, logout]);
 
   const loadBottles = async () => {
     try {
-      dispatch(setLoading(true));
+      setLoading(true);
+      setError('');
       const isOnline = await syncService.checkConnection();
-      
-      if (isOnline) {
-        const response = await inventoryAPI.getAllBottles();
-        dispatch(setBottles(response.data));
+      if (isOnline && token) {
+        const response = await inventoryAPI.getAllBottles(token);
+        setBottles(response.data);
+      } else if (!isOnline) {
+        setError('No internet connection.');
       }
-    } catch (error) {
-      console.error('Failed to load bottles:', error);
+    } catch (err) {
+      setError('Failed to load bottles.');
+      console.error('Failed to load bottles:', err);
     } finally {
-      dispatch(setLoading(false));
+      setLoading(false);
     }
   };
 
@@ -62,24 +83,12 @@ const HomeScreen = ({ navigation }) => {
     setRefreshing(false);
   };
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: () => dispatch(logout())
-        }
-      ]
-    );
-  };
+  // Logout logic removed
 
   const filteredBottles = bottles.filter(bottle => {
     const matchesSearch = 
       bottle.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      bottle.brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       bottle.batchNumber?.toLowerCase().includes(searchQuery.toLowerCase());
     
     if (!matchesSearch) return false;
@@ -104,10 +113,13 @@ const HomeScreen = ({ navigation }) => {
       <TouchableOpacity
         onPress={() => navigation.navigate('BottleDetail', { bottle: item })}
       >
-        <Card style={[styles.card, { borderLeftColor: expStatus.color }]}>
+        <Card style={[styles.card, { borderLeftColor: expStatus.color }]}>...
           <Card.Content>
             <View style={styles.cardHeader}>
               <Text style={styles.bottleName}>{item.name}</Text>
+              {item.brand ? (
+                <Text style={styles.brandLabel}>Brand: {item.brand}</Text>
+              ) : null}
               <Chip 
                 style={{ backgroundColor: expStatus.color }}
                 textStyle={{ color: 'white' }}
@@ -136,25 +148,6 @@ const HomeScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       {/* Subscription Status Banner */}
-      {subscriptionStatus.tier === 'free' && (
-        <TouchableOpacity
-          style={styles.subscriptionBanner}
-          onPress={() => navigation.navigate('Paywall')}
-        >
-          <View style={styles.bannerContent}>
-            <Ionicons name="rocket-outline" size={20} color="#fff" />
-            <View style={styles.bannerTextContainer}>
-              <Text style={styles.bannerText}>
-                {subscriptionStatus.bottleCount}/{subscriptionStatus.bottleLimit} bottles used
-              </Text>
-              <Text style={styles.bannerSubtext}>
-                Upgrade for unlimited bottles & AI OCR
-              </Text>
-            </View>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color="#fff" />
-        </TouchableOpacity>
-      )}
       
       <Searchbar
         placeholder="Search bottles..."
@@ -187,23 +180,29 @@ const HomeScreen = ({ navigation }) => {
         </Chip>
       </View>
 
-      <FlatList
-        data={filteredBottles}
-        renderItem={renderBottle}
-        keyExtractor={(item) => item._id}
-        contentContainerStyle={styles.list}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No bottles found</Text>
-            <Text style={styles.emptySubtext}>
-              Tap the + button to add your first bottle
-            </Text>
-          </View>
-        }
-      />
+      {error ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>{error}</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredBottles}
+          renderItem={renderBottle}
+          keyExtractor={(item) => item._id}
+          contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No bottles found</Text>
+              <Text style={styles.emptySubtext}>
+                Tap the + button to add your first bottle
+              </Text>
+            </View>
+          }
+        />
+      )}
 
       <FAB
         style={styles.fab}

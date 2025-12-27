@@ -7,12 +7,12 @@ import {
   ScrollView,
 } from 'react-native';
 import { TextInput, Button, Text, Snackbar } from 'react-native-paper';
-import { useDispatch } from 'react-redux';
-import { loginSuccess } from '../store/slices/authSlice';
+// Redux removed
 import { authAPI } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
-const LoginScreen = ({ navigation }) => {
-  const dispatch = useDispatch();
+const LoginScreen = () => {
+  const { setToken } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,9 +30,8 @@ const LoginScreen = ({ navigation }) => {
 
     try {
       const response = await authAPI.login({ email, password });
-      const { token, user } = response.data;
-      
-      dispatch(loginSuccess({ token, user }));
+      const { token } = response.data;
+      await setToken(token);
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
     } finally {

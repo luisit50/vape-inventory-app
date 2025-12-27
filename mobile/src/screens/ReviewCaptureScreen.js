@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   View,
   StyleSheet,
@@ -12,116 +12,103 @@ import {
 } from 'react-native';
 import { TextInput, Button, Text, Chip } from 'react-native-paper';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
-import { useDispatch, useSelector } from 'react-redux';
 import { extractBottleData, extractMultiFieldData } from '../services/ocrService';
-import { addBottle, addPendingBottle } from '../store/slices/inventorySlice';
 import { inventoryAPI } from '../services/api';
 import syncService from '../services/syncService';
-import { useSubscription } from '../contexts/SubscriptionContext';
+import { AuthContext } from '../contexts/AuthContext';
 
-const ReviewCaptureScreen = ({ route, navigation }) => {
-  const { imageUri, imageUris, multiCapture } = route.params;
-  const dispatch = useDispatch();
-  const { hasReachedBottleLimit, subscriptionStatus, refreshSubscriptionStatus } = useSubscription();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [showRawTexts, setShowRawTexts] = useState(false);
-  const [rawTexts, setRawTexts] = useState({});
-  
+const ReviewCaptureScreen = ({ navigation, route }) => {
+  const { token } = useContext(AuthContext);
+  // Add your state and effect hooks here
   const [formData, setFormData] = useState({
     name: '',
+    brand: '',
     mg: '',
     bottleSize: '',
     batchNumber: '',
     expirationDate: '',
-    imageUri: multiCapture ? null : imageUri,
-    imageUris: multiCapture ? imageUris : null,
   });
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [multiCapture, setMultiCapture] = useState(false);
+  const [imageUri, setImageUri] = useState(null);
+  const [imageUris, setImageUris] = useState(null);
+  const [rawTexts, setRawTexts] = useState({});
+  const [showRawTexts, setShowRawTexts] = useState(false);
 
+
+  // On mount, extract image(s) from route and run OCR/AI extraction
   useEffect(() => {
-    processImage();
-  }, []);
-
-  const processImage = async () => {
-    try {
-      if (multiCapture && imageUris) {
-        // Process multiple field images
-        const extractedData = await extractMultiFieldData(imageUris);
-        setFormData(prev => ({
-          ...prev,
-          ...extractedData,
-          imageUris: imageUris,
-        }));
-        setRawTexts(extractedData.rawTexts || {});
-      } else {
-        // Process single image
-        const extractedData = await extractBottleData(imageUri);
-        setFormData(prev => ({
-          ...prev,
-          ...extractedData,
-          imageUri: imageUri,
-        }));
-        setRawTexts({ full: extractedData.rawText || '' });
+    if (route && route.params) {
+      const { imageUri: navImageUri, imageUris: navImageUris, multiCapture: navMultiCapture } = route.params;
+      if (navMultiCapture && navImageUris) {
+        setMultiCapture(true);
+        setImageUris(navImageUris);
+        setLoading(true);
+        // Run multi-field OCR/AI extraction
+        extractMultiFieldData(navImageUris, true)
+          .then(result => {
+            setFormData({
+              name: result.name || '',
+              brand: result.brand || '',
+              mg: result.mg || '',
+              bottleSize: result.bottleSize || '',
+              batchNumber: result.batchNumber || '',
+              expirationDate: result.expirationDate || '',
+            });
+            setRawTexts(result.rawTexts || {});
+          })
+          .catch(err => {
+            Alert.alert('OCR Error', 'Failed to extract text from images. You can enter details manually.');
+          })
+          .finally(() => setLoading(false));
+      } else if (navImageUri) {
+        setMultiCapture(false);
+        setImageUri(navImageUri);
+        setLoading(true);
+        // Run single-image OCR/AI extraction
+        extractBottleData(navImageUri, true)
+          .then(result => {
+            setFormData({
+              name: result.name || '',
+              brand: result.brand || '',
+              mg: result.mg || '',
+              bottleSize: result.bottleSize || '',
+              batchNumber: result.batchNumber || '',
+              expirationDate: result.expirationDate || '',
+            });
+            setRawTexts(result.rawTexts || {});
+          })
+          .catch(err => {
+            Alert.alert('OCR Error', 'Failed to extract text from image. You can enter details manually.');
+          })
+          .finally(() => setLoading(false));
       }
-    } catch (error) {
-      console.error('OCR failed:', error);
-      Alert.alert('Notice', 'Could not extract text. Please enter manually.');
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [route]);
 
   const handleSave = async () => {
-    // Validate required fields
     if (!formData.name || !formData.expirationDate) {
       Alert.alert('Error', 'Please fill in at least name and expiration date');
       return;
     }
-
-    // Check bottle limit for free users
-    if (hasReachedBottleLimit()) {
-      Alert.alert(
-        'Bottle Limit Reached',
-        `You've reached the ${subscriptionStatus.bottleLimit} bottle limit on the free plan. Upgrade to Premium for unlimited bottles!`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Upgrade', onPress: () => navigation.navigate('Paywall', { from: 'save' }) }
-        ]
-      );
-      return;
-    }
-
     setSaving(true);
-    
     try {
       const isOnline = await syncService.checkConnection();
-      
       const bottleData = {
         ...formData,
         capturedAt: new Date().toISOString(),
       };
-
       if (isOnline) {
-        // Save to backend immediately
-        const response = await inventoryAPI.createBottle(bottleData);
-        dispatch(addBottle(response.data));
-        
-        // Refresh subscription status to update bottle count
-        await refreshSubscriptionStatus();
-        
+        await inventoryAPI.createBottle(bottleData, token);
         Alert.alert('Success', 'Bottle added to inventory');
       } else {
-        // Save locally for later sync
-        const localBottle = {
-          ...bottleData,
-          _id: `temp_${Date.now()}`, // Temporary ID
-          syncStatus: 'pending',
-        };
-        dispatch(addPendingBottle(localBottle));
         Alert.alert('Saved Offline', 'Bottle will sync when online');
       }
-      
-      navigation.navigate('Home');
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Home' }],
+      });
     } catch (error) {
       console.error('Save error:', error);
       Alert.alert('Error', 'Failed to save bottle');
@@ -218,6 +205,14 @@ const ReviewCaptureScreen = ({ route, navigation }) => {
           style={styles.input}
           right={multiCapture && formData.name ? <TextInput.Icon icon="check" /> : null}
         />
+        <TextInput
+          label="Brand Name"
+          value={formData.brand}
+          onChangeText={(text) => updateField('brand', text)}
+          mode="outlined"
+          style={styles.input}
+          right={multiCapture && formData.brand ? <TextInput.Icon icon="check" /> : null}
+        />
         
         <TextInput
           label="Nicotine Strength (mg)"
@@ -282,7 +277,6 @@ const ReviewCaptureScreen = ({ route, navigation }) => {
     </KeyboardAvoidingView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

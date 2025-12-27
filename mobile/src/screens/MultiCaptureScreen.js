@@ -16,9 +16,16 @@ const CAPTURE_FIELDS = [
   {
     id: 'name',
     label: 'Product Name',
-    instruction: 'Capture the product/brand name clearly',
+    instruction: 'Capture the product name clearly',
     required: true,
     icon: 'label',
+  },
+  {
+    id: 'brand',
+    label: 'Brand Name',
+    instruction: 'Capture the brand name clearly',
+    required: false,
+    icon: 'business',
   },
   {
     id: 'mg',
@@ -207,7 +214,7 @@ const MultiCaptureScreen = ({ navigation }) => {
               ))}
             </View>
             <Text style={styles.progressText}>
-              {currentFieldIndex + 1} of {CAPTURE_FIELDS.length}
+              {`${currentFieldIndex + 1} of ${CAPTURE_FIELDS.length}`}
             </Text>
           </View>
 
@@ -216,7 +223,7 @@ const MultiCaptureScreen = ({ navigation }) => {
             <View style={styles.infoBox}>
               <MaterialIcons name={currentField.icon} size={32} color="white" />
               <Text style={styles.fieldLabel}>
-                {currentField.label} {currentField.required && '*'}
+                {currentField.label} {currentField.required ? '*' : ''}
               </Text>
               <Text style={styles.fieldInstruction}>
                 {currentField.instruction}
