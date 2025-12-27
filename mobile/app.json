@@ -45,7 +45,11 @@
         "android.permission.READ_MEDIA_VIDEO",
         "android.permission.READ_MEDIA_AUDIO"
       ],
-      "package": "com.yourcompany.vapeinventory"
+      "package": "com.yourcompany.vapeinventory",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#4CAF50"
+      }
     },
     "web": {},
     "extra": {

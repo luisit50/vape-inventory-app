@@ -24,12 +24,23 @@ export const SubscriptionProvider = ({ children }) => {
 
   const user = useSelector((state) => state.auth.user);
   const token = useSelector((state) => state.auth.token);
+  const bottles = useSelector((state) => state.inventory.bottles); // Get bottles from Redux
 
   useEffect(() => {
     if (user && token) {
       initializeSubscription();
     }
   }, [user, token]);
+
+  // Update bottle count whenever bottles array changes
+  useEffect(() => {
+    if (subscriptionStatus.tier === 'free' && bottles) {
+      setSubscriptionStatus(prev => ({
+        ...prev,
+        bottleCount: bottles.length
+      }));
+    }
+  }, [bottles]);
 
   const initializeSubscription = async () => {
     try {
@@ -40,7 +51,19 @@ export const SubscriptionProvider = ({ children }) => {
       await refreshSubscriptionStatus();
     } catch (error) {
       console.error('Error initializing subscription:', error);
-      setSubscriptionStatus(prev => ({ ...prev, loading: false }));
+      // Set free tier as default on error
+      setSubscriptionStatus({
+        tier: 'free',
+        isActive: false,
+        loading: false,
+        bottleCount: 0,
+        bottleLimit: 50,
+        features: {
+          aiOcr: false,
+          webDashboard: false,
+          bottleLimit: 50
+        }
+      });
     }
   };
 
@@ -64,8 +87,21 @@ export const SubscriptionProvider = ({ children }) => {
         features: backendStatus.features,
       });
     } catch (error) {
-      console.error('Error fetching subscription status:', error);
-      setSubscriptionStatus(prev => ({ ...prev, loading: false }));
+      // Backend routes not deployed yet - use local bottle count from Redux
+      const bottleCount = bottles?.length || 0;
+      
+      setSubscriptionStatus({
+        tier: 'free',
+        isActive: false,
+        loading: false,
+        bottleCount: bottleCount,
+        bottleLimit: 50,
+        features: {
+          aiOcr: false,
+          webDashboard: false,
+          bottleLimit: 50,
+        }
+      });
     }
   };
 

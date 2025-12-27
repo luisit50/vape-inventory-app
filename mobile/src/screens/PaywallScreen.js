@@ -27,10 +27,35 @@ const PaywallScreen = ({ navigation, route }) => {
   const loadOfferings = async () => {
     try {
       const offerings = await revenueCatService.getOfferings();
-      setPackages(offerings);
+      
+      // If no offerings (Expo Go / test mode), create mock offerings for UI testing
+      if (offerings.length === 0) {
+        console.log('No RevenueCat offerings - using mock data for testing');
+        const mockPackages = [
+          {
+            identifier: 'premium_monthly',
+            product: { priceString: '$4.99', identifier: 'premium_monthly' }
+          },
+          {
+            identifier: 'premium_yearly',
+            product: { priceString: '$49.99', identifier: 'premium_yearly' }
+          },
+          {
+            identifier: 'pro_monthly',
+            product: { priceString: '$9.99', identifier: 'pro_monthly' }
+          },
+          {
+            identifier: 'pro_yearly',
+            product: { priceString: '$99.99', identifier: 'pro_yearly' }
+          }
+        ];
+        setPackages(mockPackages);
+      } else {
+        setPackages(offerings);
+      }
     } catch (error) {
       console.error('Error loading offerings:', error);
-      Alert.alert('Error', 'Failed to load subscription options');
+      Alert.alert('Notice', 'Running in demo mode. Real purchases require a standalone app.');
     } finally {
       setLoading(false);
     }
@@ -39,28 +64,22 @@ const PaywallScreen = ({ navigation, route }) => {
   const handlePurchase = async (pkg) => {
     setPurchasing(true);
     try {
-      const result = await revenueCatService.purchasePackage(pkg);
+      // Show demo alert in Expo Go
+      Alert.alert(
+        '⚠️ Demo Mode',
+        'Real purchases require a standalone app published to App Store/Play Store. For now, this is just a UI preview.',
+        [{ text: 'OK' }]
+      );
       
-      if (result.success) {
-        await refreshSubscriptionStatus();
-        Alert.alert(
-          'Success! 🎉',
-          `You now have ${result.tier.toUpperCase()} access!`,
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.goBack(),
-            },
-          ]
-        );
-      } else if (result.cancelled) {
-        // User cancelled, do nothing
-      } else {
-        Alert.alert('Purchase Failed', 'Please try again or contact support.');
-      }
+      // Uncomment this when you have a real app:
+      // const result = await revenueCatService.purchasePackage(pkg);
+      // if (result.success) {
+      //   await refreshSubscriptionStatus();
+      //   Alert.alert('Success! 🎉', `You now have ${result.tier.toUpperCase()} access!`);
+      //   navigation.goBack();
+      // }
     } catch (error) {
       console.error('Purchase error:', error);
-      Alert.alert('Error', 'Something went wrong. Please try again.');
     } finally {
       setPurchasing(false);
     }

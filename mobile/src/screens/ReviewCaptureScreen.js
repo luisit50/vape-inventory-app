@@ -22,11 +22,11 @@ import { useSubscription } from '../contexts/SubscriptionContext';
 const ReviewCaptureScreen = ({ route, navigation }) => {
   const { imageUri, imageUris, multiCapture } = route.params;
   const dispatch = useDispatch();
+  const { hasReachedBottleLimit, subscriptionStatus, refreshSubscriptionStatus } = useSubscription();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showRawTexts, setShowRawTexts] = useState(false);
   const [rawTexts, setRawTexts] = useState({});
-  const { hasReachedBottleLimit, subscriptionStatus } = useSubscription();
   
   const [formData, setFormData] = useState({
     name: '',
@@ -105,6 +105,10 @@ const ReviewCaptureScreen = ({ route, navigation }) => {
         // Save to backend immediately
         const response = await inventoryAPI.createBottle(bottleData);
         dispatch(addBottle(response.data));
+        
+        // Refresh subscription status to update bottle count
+        await refreshSubscriptionStatus();
+        
         Alert.alert('Success', 'Bottle added to inventory');
       } else {
         // Save locally for later sync

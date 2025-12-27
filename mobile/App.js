@@ -2,11 +2,14 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Provider as PaperProvider } from 'react-native-paper';
-import { Provider as ReduxProvider } from 'react-redux';
+import { Provider as ReduxProvider, useDispatch } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from './src/store/store';
 import { useSelector } from 'react-redux';
 import { SubscriptionProvider } from './src/contexts/SubscriptionContext';
+import { logout } from './src/store/slices/authSlice';
+import { TouchableOpacity, Alert } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 
 // Screens
 import LoginScreen from './src/screens/LoginScreen';
@@ -35,14 +38,42 @@ const AuthStack = () => (
   </Stack.Navigator>
 );
 
-const AppStack = () => (
-  <Stack.Navigator>
-    <Stack.Screen 
-      name="Home" 
-      component={HomeScreen}
-      options={{ title: 'Inventory' }}
-    />
-    <Stack.Screen 
+const AppStack = () => {
+  const dispatch = useDispatch();
+  
+  const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: () => dispatch(logout())
+        }
+      ]
+    );
+  };
+
+  return (
+    <Stack.Navigator>
+      <Stack.Screen 
+        name="Home" 
+        component={HomeScreen}
+        options={{
+          title: 'Inventory',
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={handleLogout}
+              style={{ marginRight: 15 }}
+            >
+              <MaterialIcons name="logout" size={24} color="#333" />
+            </TouchableOpacity>
+          )
+        }}
+      />
+      <Stack.Screen 
       name="Camera" 
       component={CameraScreen}
       options={{ headerShown: false }}
@@ -68,7 +99,8 @@ const AppStack = () => (
       options={{ headerShown: false }}
     />
   </Stack.Navigator>
-);
+  );
+};
 
 const Navigation = () => {
   const isAuthenticated = useSelector(state => state.auth.isAuthenticated);

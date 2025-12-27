@@ -26,7 +26,7 @@ class RevenueCatService {
       }
       return [];
     } catch (error) {
-      console.error('Error fetching offerings:', error);
+      // Silently fail in Expo Go / demo mode - app will use mock data
       return [];
     }
   }
@@ -64,8 +64,8 @@ class RevenueCatService {
       
       return { success: false, message: 'No active subscriptions found' };
     } catch (error) {
-      console.error('Error restoring purchases:', error);
-      return { success: false, error };
+      // Silently fail in Expo Go / demo mode
+      return { success: false, message: 'Restore not available in demo mode' };
     }
   }
 

@@ -7,10 +7,11 @@ import {
   RefreshControl,
   Alert,
 } from 'react-native';
-import { Text, FAB, Searchbar, Chip, Card, Portal, Dialog, Button } from 'react-native-paper';
+import { Text, FAB, Searchbar, Chip, Card, Portal, Dialog, Button, IconButton } from 'react-native-paper';
 import { useDispatch, useSelector } from 'react-redux';
 import { inventoryAPI } from '../services/api';
 import { setBottles, setLoading } from '../store/slices/inventorySlice';
+import { logout } from '../store/slices/authSlice';
 import { formatDistanceToNow } from 'date-fns';
 import syncService from '../services/syncService';
 import { getExpirationStatus } from '../utils/dateUtils';
@@ -24,11 +25,20 @@ const HomeScreen = ({ navigation }) => {
   const [filterStatus, setFilterStatus] = useState('all'); // all, expiring, expired
   const [refreshing, setRefreshing] = useState(false);
   const [showCaptureDialog, setShowCaptureDialog] = useState(false);
-  const { subscriptionStatus, hasReachedBottleLimit, getBottleLimitPercentage } = useSubscription();
+  const { subscriptionStatus, hasReachedBottleLimit, getBottleLimitPercentage, refreshSubscriptionStatus } = useSubscription();
 
   useEffect(() => {
     loadBottles();
+    refreshSubscriptionStatus(); // Refresh bottle count when screen loads
   }, []);
+
+  // Also refresh when screen comes into focus
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      refreshSubscriptionStatus();
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const loadBottles = async () => {
     try {
@@ -50,6 +60,21 @@ const HomeScreen = ({ navigation }) => {
     setRefreshing(true);
     await loadBottles();
     setRefreshing(false);
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: () => dispatch(logout())
+        }
+      ]
+    );
   };
 
   const filteredBottles = bottles.filter(bottle => {
