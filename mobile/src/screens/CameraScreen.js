@@ -13,8 +13,6 @@ const CameraScreen = ({ navigation }) => {
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef(null);
   const [flashMode, setFlashMode] = useState('off');
-  const [isCameraReady, setIsCameraReady] = useState(false);
-  const [pictureSize, setPictureSize] = useState(undefined);
 
   React.useEffect(() => {
     if (permission && !permission.granted && permission.canAskAgain) {
@@ -23,12 +21,11 @@ const CameraScreen = ({ navigation }) => {
   }, [permission]);
 
   const takePicture = async () => {
-    if (cameraRef.current && isCameraReady) {
+    if (cameraRef.current) {
       try {
         const photo = await cameraRef.current.takePictureAsync({
-          quality: 1,
+          quality: 0.9,
           base64: false,
-          pictureSize: pictureSize,
         });
         navigation.navigate('ReviewCapture', { imageUri: photo.uri });
       } catch (error) {
@@ -57,31 +54,13 @@ const CameraScreen = ({ navigation }) => {
     );
   }
 
-  // Set highest supported picture size when camera is ready
-  const handleCameraReady = async () => {
-    setIsCameraReady(true);
-    if (cameraRef.current && cameraRef.current.getAvailablePictureSizesAsync) {
-      try {
-        const sizes = await cameraRef.current.getAvailablePictureSizesAsync();
-        if (sizes && sizes.length > 0) {
-          setPictureSize(sizes[sizes.length - 1]); // Use the largest size
-        }
-      } catch (e) {
-        // fallback: do nothing
-      }
-    }
-  };
-
   return (
     <View style={styles.container}>
       <CameraView
         style={styles.camera}
         facing="back"
         flash={flashMode}
-        autoFocus="on"
         ref={cameraRef}
-        onCameraReady={handleCameraReady}
-        pictureSize={pictureSize}
       />
       <View style={styles.topBar}>
         <TouchableOpacity 

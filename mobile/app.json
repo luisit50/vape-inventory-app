@@ -4,8 +4,10 @@
     "slug": "vape-inventory-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#4CAF50"
     },
@@ -48,6 +50,7 @@
       "package": "com.yourcompany.vapeinventory",
       "versionCode": 1,
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#4CAF50"
       }
     },
