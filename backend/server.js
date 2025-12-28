@@ -24,6 +24,7 @@ app.use('/api/subscription', require('./routes/subscription'));
 app.use('/api/inventory', require('./routes/inventory'));
 app.use('/api/ocr', require('./routes/ocr'));
 app.use('/api/ai-ocr', require('./routes/aiOcr'));
+app.use('/api/admin', require('./routes/admin'));
 
 // Root endpoint
 app.get('/', (req, res) => {

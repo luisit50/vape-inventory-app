@@ -43,6 +43,15 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 50, // Free tier limit
   },
+  // Google Sheets integration
+  spreadsheetId: {
+    type: String,
+    default: null,
+  },
+  spreadsheetName: {
+    type: String,
+    default: null,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

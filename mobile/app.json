@@ -29,7 +29,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourcompany.vapeinventory",
+      "bundleIdentifier": "com.luisfigueroa.vapeinventory",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }

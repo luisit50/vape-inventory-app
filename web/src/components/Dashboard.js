@@ -24,6 +24,7 @@ import {
 import { Refresh as RefreshIcon, Edit as EditIcon, Delete as DeleteIcon, DeleteSweep as DeleteSweepIcon } from '@mui/icons-material';
 import { inventoryAPI } from '../services/api';
 import { getExpirationStatus, formatDate } from '../utils/dateUtils';
+import GoogleSheetManager from './GoogleSheetManager';
 
 const Dashboard = () => {
   const [bottles, setBottles] = useState([]);
@@ -31,7 +32,8 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [tabValue, setTabValue] = useState(0); // 0: All, 1: Critical, 2: Warning, 3: Good
+  const [tabValue, setTabValue] = useState(0); // 0: All, 1: Critical, 2: Warning, 3: Good, 4: Google Sheets
+  const [mainTab, setMainTab] = useState(0); // 0: Inventory, 1: Google Sheets
   const lastCheckRef = useRef('');
   const [editDialog, setEditDialog] = useState({ open: false, bottle: null });
   const [deleteDialog, setDeleteDialog] = useState({ open: false, bottle: null });
@@ -258,8 +260,17 @@ const Dashboard = () => {
         </Alert>
       )}
 
-      {/* Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
+      {/* Main Tabs */}
+      <Tabs value={mainTab} onChange={(e, newValue) => setMainTab(newValue)} sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
+        <Tab label="📦 Inventory" />
+        <Tab label="📊 Google Sheets" />
+      </Tabs>
+
+      {/* Inventory Tab Content */}
+      {mainTab === 0 && (
+        <>
+          {/* Stats Cards */}
+          <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
@@ -438,6 +449,13 @@ const Dashboard = () => {
             No bottles found
           </Typography>
         </Box>
+      )}
+        </>
+      )}
+
+      {/* Google Sheets Tab Content */}
+      {mainTab === 1 && (
+        <GoogleSheetManager />
       )}
 
       {/* Edit Dialog */}
