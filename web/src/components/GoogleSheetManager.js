@@ -89,6 +89,28 @@ const GoogleSheetManager = () => {
     }
   };
 
+  const handleDisconnectSheet = async () => {
+    if (!window.confirm('Are you sure you want to disconnect this Google Sheet? You can reconnect a different sheet afterwards.')) {
+      return;
+    }
+
+    setLoading(true);
+    setMessage('');
+
+    try {
+      const response = await api.post('/admin/disconnect-sheet');
+      
+      if (response.data.success) {
+        setSheetInfo(null);
+        setMessage('✅ Sheet disconnected successfully! You can now connect a different sheet.');
+      }
+    } catch (error) {
+      setMessage(`❌ Error: ${error.response?.data?.error || error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const extractSpreadsheetId = (input) => {
     // Extract ID from URL or use as-is if already an ID
     const urlMatch = input.match(/\/d\/([a-zA-Z0-9-_]+)/);
@@ -128,6 +150,14 @@ const GoogleSheetManager = () => {
                 style={{...styles.button, ...styles.updateButton}}
               >
                 {updating ? '⏳ Updating...' : '🔄 Update Now'}
+              </button>
+
+              <button
+                onClick={handleDisconnectSheet}
+                disabled={loading}
+                style={{...styles.button, ...styles.disconnectButton}}
+              >
+                {loading ? '⏳ Disconnecting...' : '🔌 Disconnect'}
               </button>
             </div>
             
@@ -266,6 +296,10 @@ const styles = {
   },
   updateButton: {
     backgroundColor: '#4CAF50',
+    color: 'white',
+  },
+  disconnectButton: {
+    backgroundColor: '#f44336',
     color: 'white',
   },
   setupButton: {

@@ -154,4 +154,36 @@ router.get('/my-sheet', auth, async (req, res) => {
   }
 });
 
+/**
+ * @route   POST /api/admin/disconnect-sheet
+ * @desc    Disconnect user's Google Sheet
+ * @access  Private
+ */
+router.post('/disconnect-sheet', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Clear spreadsheet info from user
+    await User.findByIdAndUpdate(
+      userId,
+      { 
+        spreadsheetId: null,
+        spreadsheetName: null
+      },
+      { new: true }
+    );
+    
+    res.json({ 
+      success: true, 
+      message: 'Google Sheet disconnected successfully'
+    });
+  } catch (error) {
+    console.error('Error disconnecting sheet:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
 module.exports = router;

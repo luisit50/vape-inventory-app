@@ -13,10 +13,28 @@ const SHEET_NAME = 'Sheet1'; // The actual sheet tab name
  * Authenticate with Google Sheets API
  */
 async function getGoogleSheetsClient() {
-  const auth = new google.auth.GoogleAuth({
-    keyFile: process.env.GOOGLE_SHEETS_CREDENTIALS_PATH || './google-credentials.json',
-    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-  });
+  let auth;
+  
+  // Check if credentials are in environment variable (for production)
+  if (process.env.GOOGLE_CREDENTIALS_JSON) {
+    try {
+      const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
+      auth = new google.auth.GoogleAuth({
+        credentials: credentials,
+        scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+      });
+    } catch (error) {
+      console.error('Error parsing GOOGLE_CREDENTIALS_JSON:', error);
+      throw new Error('Invalid Google credentials in environment variable');
+    }
+  } else {
+    // Use credentials file (for local development)
+    const credPath = process.env.GOOGLE_SHEETS_CREDENTIALS_PATH || './google-credentials.json';
+    auth = new google.auth.GoogleAuth({
+      keyFile: credPath,
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+    });
+  }
 
   const client = await auth.getClient();
   const sheets = google.sheets({ version: 'v4', auth: client });
