@@ -52,10 +52,11 @@ const GoogleSheetManager = () => {
       });
 
       if (response.data.success) {
-        setSheetInfo(response.data);
         setMessage('✅ Google Sheet linked successfully!');
         setSpreadsheetId('');
         setSpreadsheetName('');
+        // Fetch updated sheet info to refresh the view
+        await fetchSheetInfo();
       }
     } catch (error) {
       if (error.response?.status === 401) {
